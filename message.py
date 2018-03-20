@@ -38,3 +38,4 @@ def onMessageConcurrent(n,t,x, ctx):
         Transitions.delete(t)
     for t in set(expected) - set(transitions):
         Transitions.insert(t, None)
+    yield #6
