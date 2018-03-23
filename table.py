@@ -4,6 +4,10 @@ class RTSKey (namedtuple('RTSKey', ('node', 'time'))):
     def __repr__(self):
         return '#'.join((self[0], str(-self[1])))
 
+class RRTSKey (namedtuple('RRTSKey', ('node', 'time'))):
+    def __repr__(self):
+        return '#'.join((self[0], str(self[1])))
+
 class TransitionsKey(namedtuple('TransitionsKey', ('node', 'precedent', 'subsequent'))):
     def __repr__(self):
         return "{}#{}#{}".format(self[0], -self[1], -self[2])
