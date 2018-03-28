@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 
 from collections import namedtuple
+from itertools import chain
 from sys import maxint as MAXINT
 from table import TransitionsKey, RTSKey
 Context = namedtuple('Context', ('RTS', 'RRTS', 'Transitions'))
@@ -21,20 +22,24 @@ def onMessageConcurrent(n,t,x, ctx):
     RRTS.insert((n,t), 0)
     yield 1, sequence, t ; sequence += 1
 
+    # Find preceding message
     try:
         prev = RTS.scan((n,-t), (n+'\0', 0))[1]
         yield 2, sequence, -prev[0].time ; sequence += 1
     except IndexError:
+        # No preceding message.  Insert one at time 0
         u,y = 0, []
         RTS.insert((n,u), y)
         yield 3, sequence, None ; sequence += 1
     else:
         u,y = prev[0].time, prev[1]
 
+    # Find subsequent message
     try:
         following = RRTS.scan((n,t), (n+'\0', 0))[1]
         yield 4, sequence, following[0].time; sequence += 1
     except IndexError:
+        # No subsequent message.  Insert one at time MAX
         s = MAXINT
         RTS.insert((n,-s), [])
         yield 5, sequence, None; sequence += 1
@@ -45,11 +50,12 @@ def onMessageConcurrent(n,t,x, ctx):
     s = -s
 
     transitions = []
+    to_delete = []
     while True:
         # Insert transitions to adjacent messages 
         expected = ((n,u,-t), (n,-t,s))
         to_insert = [i for i in expected if i not in transitions]
-        if not to_insert:
+        if not to_insert and not to_delete:
             break
         for i in to_insert:
             Transitions.insert(i,None)
@@ -61,19 +67,35 @@ def onMessageConcurrent(n,t,x, ctx):
         transitions = [i[0] for i in Transitions.scan((n,-t,-MAXINT),(n,u,MAXINT))]
         yield 9, sequence, (-t,u, [i[1:] for i in transitions]); sequence += 1
 
-        # Delete messages
-        q = [i for i in transitions if i.precedent == u]
-        if q[-1] == (n,u,-t):
+        # Get all of the times that we know about, either via messages or
+        #  transitions.
+        times = sorted(set(i for i in chain (
+            (i[0].time for i in messages),
+            (i.precedent for i in transitions),
+            (i.subsequent for i in transitions))))
+
+        # Delete transitions
+        #  We need to ensure that there are no transitions with the same precedent.
+        #  If any exist, delete all transitions excepting the adjacent subsequent.
+        #  This is correct because if this thread are responsible for an extra 
+        #  transition, then the precedent of that edge must be either t or u (since 
+        #  we added transitions with those precedents).  So we ensure that there 
+        #  are no duplicates from those 
+        #TODO: delete all edges except those to the subsequent *time*.  This should
+        # let us converge more quickly
+        to_delete = []
+        for precedent in (-t,u):
+            q = [i for i in transitions if i.precedent == precedent]
             for i in q[:-1]:
                 Transitions.delete(i)
+                to_delete.append(i)
                 yield 10, sequence, i[1:] ; sequence += 1
 
-        # Find adjacent messages
-        for idx, val in enumerate(messages):
-            if val[0] == (n,-t):
-                u = messages[idx+1][0].time
-                s = messages[idx-1][0].time
+        # Find adjacent messages for generating expected transitions.
+        for idx, val in enumerate(times):
+            if val == -t:
+                u = times[idx+1]
+                s = times[idx-1]
                 break
         else:
             assert False
-    yield 11, sequence, None
