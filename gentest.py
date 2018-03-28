@@ -6,10 +6,9 @@ from sys import argv
 
 threads = int(argv[1])
 iterations = int(argv[2])
-slotCount = threads*iterations
 
 def recurse(slots, counts):
-    if len(slots) == slotCount:
+    if len(slots) == iterations:
         print ''.join(str(i) for i in slots)
         return
     for t in range(threads):
