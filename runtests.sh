@@ -3,7 +3,7 @@
 
 
 # Generate the initial list of tests
-time python gentest.py 2 11 > input.txt
+time python gentest.py 2 9 > input.txt
 
 for i in {1..99} ; do
 

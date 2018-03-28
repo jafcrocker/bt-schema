@@ -80,19 +80,25 @@ class TestMessage(unittest.TestCase):
         # 7:t3 (Insert transition - outgoing)
         self.assertEqual(t3.next(), (7,5,(-3,-4)))
         self.assertEqual(trs(), tr_exp('n', ((4,MAX),(3,4),(2,3),(1,4),(1,2),(0,1))))
-        # 8 (Scan RTS)
-        self.assertEqual(t2.next(), (8,6,(-3,-1,[-3,-2,-1])))
-        self.assertEqual(t3.next(), (8,6,(-4,-2,[-4,-3,-2])))
-        # 9 (Scan Transition)
-        self.assertEqual(t2.next(), (9,7,(-2,-1,[(-2,-3),(-1,-4),(-1,-2)])))
-        self.assertEqual(t3.next(), (9,7,(-3,-2,[(-3,-4),(-2,-3)])))
         # 10:t2 (Delete Transition)
-        self.assertEqual(t2.next(), (10,8,(-1,-4)))
+        self.assertEqual(t2.next(), (10,6,(-1,-3)))
+        self.assertEqual(trs(), tr_exp('n', ((4,MAX),(3,4),(2,3),(1,4),(1,2),(0,1))))
+        # 10:t3 (Delete Transition)
+        self.assertEqual(t3.next(), (10,6,(-2,-4)))
+        self.assertEqual(trs(), tr_exp('n', ((4,MAX),(3,4),(2,3),(1,4),(1,2),(0,1))))
+        # 8 (Scan RTS)
+        self.assertEqual(t2.next(), (8,7,(-3,-1,[-3,-2,-1])))
+        self.assertEqual(t3.next(), (8,7,(-4,-2,[-4,-3,-2])))
+        # 9 (Scan Transition)
+        self.assertEqual(t2.next(), (9,8,(-2,-1,[(-2,-3),(-1,-4),(-1,-2)])))
+        self.assertEqual(t3.next(), (9,8,(-3,-2,[(-3,-4),(-2,-3)])))
+        # 10:t2 (Delete Transition)
+        self.assertEqual(t2.next(), (10,9,(-1,-4)))
         self.assertEqual(trs(), tr_exp('n', ((4,MAX),(3,4),(2,3),(1,2),(0,1))))
         # 8 (Scan RTS)
-        self.assertEqual(t2.next(), (8,9,(-3,-1,[-3,-2,-1])))
+        self.assertEqual(t2.next(), (8,10,(-3,-1,[-3,-2,-1])))
         # 9 (Scan Transition)
-        self.assertEqual(t2.next(), (9,10,(-2,-1,[(-2,-3),(-1,-2)])))
+        self.assertEqual(t2.next(), (9,11,(-2,-1,[(-2,-3),(-1,-2)])))
         # 11 (Done)
         with self.assertRaises(StopIteration): t2.next()
         with self.assertRaises(StopIteration): t3.next()
@@ -113,8 +119,8 @@ class MyTestsMeta(type):
                 name = "test_"+line
                 attrs[name] = cls.gen(nThreads, [int(i) for i in line])
         else:
-            tests = ['1000011110111100000']
-            tests = ['0'*11]
+            tests = ['0'*9, '1'*9] 
+	    tests = ['11100000000011111100000110']
             for t in tests:
                 name = "test_"+t
                 attrs[name] = cls.gen(2, [int(i) for i in t])

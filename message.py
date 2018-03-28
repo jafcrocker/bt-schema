@@ -49,17 +49,30 @@ def onMessageConcurrent(n,t,x, ctx):
         s = following[0].time
     s = -s
 
+    # Set up preconditions to loop
+    #  Precondition: No transitions are known to us
     transitions = []
-    to_delete = []
+    #  Precondition: Assume an edge u-s and mark it for delete, even though
+    #   we haven't seen it in the Transition table.  This optimizes for the 
+    #   common case in which messages per node are processed one-at-a-time
+    #   at the expense of messages processed simulataneously.
+    to_delete = [(n,u,s)]
     while True:
-        # Insert transitions to adjacent messages 
+	# Determine transitions to insert
         expected = ((n,u,-t), (n,-t,s))
         to_insert = [i for i in expected if i not in transitions]
         if not to_insert and not to_delete:
             break
+
+        # Insert transitions to adjacent messages 
         for i in to_insert:
             Transitions.insert(i,None)
             yield 7, sequence, i[1:] ; sequence += 1
+
+	# Delete transitions known to be invalid
+        for i in to_delete:
+            Transitions.delete(i)
+            yield 10, sequence, i[1:] ; sequence += 1
 
         # Get relevant messages and transitions
         messages = RTS.scan((n,s),(n,u), True)
@@ -87,9 +100,7 @@ def onMessageConcurrent(n,t,x, ctx):
         for precedent in (-t,u):
             q = [i for i in transitions if i.precedent == precedent]
             for i in q[:-1]:
-                Transitions.delete(i)
                 to_delete.append(i)
-                yield 10, sequence, i[1:] ; sequence += 1
 
         # Find adjacent messages for generating expected transitions.
         for idx, val in enumerate(times):
