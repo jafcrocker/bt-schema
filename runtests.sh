@@ -15,7 +15,7 @@ for i in {1..99} ; do
 	fi
 
 	# Run the tests
-	time python -m unittest discover &> out-$iter
+	time python exhaustive_test.py &> out-$iter
 
 	# Rename the output files per iteration
 	for j in input passed failed todo ; do
