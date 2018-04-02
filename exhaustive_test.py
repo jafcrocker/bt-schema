@@ -58,7 +58,7 @@ class MyTests(unittest.TestCase):
         if result[0] in (7,10):
             tr = ','.join(str(-i)+str(-j) for i,j in sorted ((k[1],k[2]) for k in self.ctx.Transitions._table.iterkeys()))
         print '{rts:<8}{tr:<18}'.format(rts=rts, tr=tr),
-        print ' ' * (8*thread) , '%d:%s'% (result[0], self.printAction.format[result[0]](result[2]))
+        print ' ' * (8*thread) , '%d:%s'% (result[0], self.printAction.format[result[0]](result[1]))
     printAction.format = {
         0: lambda x: "RTS<-{}".format(-x),
         1: lambda x: "RRTS<-{}".format(x),
