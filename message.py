@@ -3,8 +3,8 @@
 from collections import namedtuple
 from itertools import chain
 from sys import maxint as MAXINT
-from table import TransitionsKey, RTSKey
-Context = namedtuple('Context', ('RTS', 'RRTS', 'Transitions'))
+from table import TransitionsKey, RRTKey
+Context = namedtuple('Context', ('RRT', 'RT', 'Transitions'))
 
 MAXINT=9
 
@@ -14,35 +14,35 @@ def onMessage(n,t,x,ctx):
         pass
 
 def onMessageConcurrent(n,t,x, ctx):
-    RTS, RRTS, Transitions = ctx.RTS, ctx.RRTS, ctx.Transitions
-    RTS.insert((n,-t), x)
+    RRT, RT, Transitions = ctx.RRT, ctx.RT, ctx.Transitions
+    RRT.insert((n,-t), x)
     yield 0, -t
 
-    RRTS.insert((n,t), 0)
+    RT.insert((n,t), 0)
     yield 1, t
 
     # Find preceding message
     try:
-        prev = RTS.scan((n,-t), (n+'\0', 0))[1]
+        prev = RRT.scan((n,-t), (n+'\0', 0))[1]
         yield 2, -prev[0].time
     except IndexError:
         # No preceding message.  Insert one at time 0
         u,y = 0, []
-        RTS.insert((n,u), y)
+        RRT.insert((n,u), y)
         yield 3, None
     else:
         u,y = prev[0].time, prev[1]
 
     # Find subsequent message
     try:
-        following = RRTS.scan((n,t), (n+'\0', 0))[1]
+        following = RT.scan((n,t), (n+'\0', 0))[1]
         yield 4, following[0].time
     except IndexError:
         # No subsequent message.  Insert one at time MAX
         s = MAXINT
-        RTS.insert((n,-s), [])
+        RRT.insert((n,-s), [])
         yield 5, None
-        RRTS.insert((n,s), 0)
+        RT.insert((n,s), 0)
         yield 6, None
     else:
         s = following[0].time
@@ -74,7 +74,7 @@ def onMessageConcurrent(n,t,x, ctx):
             yield 10, i[1:]
 
         # Get relevant messages and transitions
-        messages = RTS.scan((n,s),(n,u), True)
+        messages = RRT.scan((n,s),(n,u), True)
         yield 8, (s,u,[i[0].time for i in messages])
         transitions = [i[0] for i in Transitions.scan((n,-t,-MAXINT),(n,u,MAXINT))]
         yield 9, (-t,u, [i[1:] for i in transitions])

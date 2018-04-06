@@ -1,9 +1,9 @@
 import unittest
 from message import onMessage, onMessageConcurrent, Context, MAXINT as MAX
-from table import Table, RTSKey, TransitionsKey, RRTSKey
+from table import Table, RRTKey, TransitionsKey, RTKey
 
-rts_exp = lambda x,y: [(RTSKey(x,-i),[]) for i in y]
-rrts_exp = lambda x,y: [(RRTSKey(x,i),0) for i in y]
+rts_exp = lambda x,y: [(RRTKey(x,-i),[]) for i in y]
+rrts_exp = lambda x,y: [(RTKey(x,i),0) for i in y]
 tr_exp = lambda x,y: [(TransitionsKey(x,-i,-j),None) for i,j in y]
 class NotTerminatedException (AssertionError):
     pass
@@ -54,14 +54,14 @@ class MyTests(unittest.TestCase):
     def printAction(self, thread, result):
         rts,tr = '',''
         if result[0] == 0:
-            rts = ''.join(str(-i) for i in sorted (j.time for j in self.ctx.RTS._table.iterkeys()))
+            rts = ''.join(str(-i) for i in sorted (j.time for j in self.ctx.RRT._table.iterkeys()))
         if result[0] in (7,10):
             tr = ','.join(str(-i)+str(-j) for i,j in sorted ((k[1],k[2]) for k in self.ctx.Transitions._table.iterkeys()))
         print '{rts:<8}{tr:<18}'.format(rts=rts, tr=tr),
         print ' ' * (8*thread) , '%d:%s'% (result[0], self.printAction.format[result[0]](result[1]))
     printAction.format = {
-        0: lambda x: "RTS<-{}".format(-x),
-        1: lambda x: "RRTS<-{}".format(x),
+        0: lambda x: "RRT<-{}".format(-x),
+        1: lambda x: "RT<-{}".format(x),
         2: lambda x: "u={}".format(x),
         3: lambda x: "",
         4: lambda x: "s={}".format(x),
@@ -74,10 +74,10 @@ class MyTests(unittest.TestCase):
         }
 
     def setUp(self):
-        RTS=Table(RTSKey)
-        RRTS=Table(RRTSKey)
+        RRT=Table(RRTKey)
+        RT=Table(RTKey)
         Transitions=Table(TransitionsKey)
-        self.ctx = Context(RTS, RRTS, Transitions)
+        self.ctx = Context(RRT, RT, Transitions)
 
     def doit(self, threadCnt, order):
         onMessage('n', 1, [], self.ctx)
@@ -124,9 +124,9 @@ class MyTests(unittest.TestCase):
                     self.printAction(i, result)
 
         msgs = [MAX] + range(threadCnt+1,-1,-1)
-        self.assertEqual(self.ctx.RTS.prefix('n'), 
+        self.assertEqual(self.ctx.RRT.prefix('n'), 
                 rts_exp('n', msgs))
-        self.assertEqual(self.ctx.RRTS.prefix('n'), 
+        self.assertEqual(self.ctx.RT.prefix('n'), 
                 rrts_exp('n', msgs[-2::-1]))
         trs =[(i,j) for i,j in zip(msgs[1:],msgs[:-1])] 
         self.assertEqual(self.ctx.Transitions.prefix('n'), 

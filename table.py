@@ -1,10 +1,10 @@
 from collections import namedtuple
 
-class RTSKey (namedtuple('RTSKey', ('node', 'time'))):
+class RRTKey (namedtuple('RRTKey', ('node', 'time'))):
     def __repr__(self):
         return '#'.join((self[0], str(-self[1])))
 
-class RRTSKey (namedtuple('RRTSKey', ('node', 'time'))):
+class RTKey (namedtuple('RTKey', ('node', 'time'))):
     def __repr__(self):
         return '#'.join((self[0], str(self[1])))
 

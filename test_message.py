@@ -1,22 +1,22 @@
 import unittest
 from message import onMessage, onMessageConcurrent, Context, MAXINT as MAX
-from table import Table, RTSKey, TransitionsKey, RRTSKey
+from table import Table, RRTKey, TransitionsKey, RTKey
 
-rts_exp = lambda x,y: [(RTSKey(x,-i),[]) for i in y]
-rrts_exp = lambda x,y: [(RRTSKey(x,i),0) for i in y]
+rts_exp = lambda x,y: [(RRTKey(x,-i),[]) for i in y]
+rrts_exp = lambda x,y: [(RTKey(x,i),0) for i in y]
 tr_exp = lambda x,y: [(TransitionsKey(x,-i,-j),None) for i,j in y]
 
 
 class TestMessage(unittest.TestCase):
     def setUp(self):
-        RTS=Table(RTSKey)
-        RRTS=Table(RRTSKey)
+        RRT=Table(RRTKey)
+        RT=Table(RTKey)
         Transitions=Table(TransitionsKey)
-        self.ctx = Context(RTS, RRTS, Transitions)
+        self.ctx = Context(RRT, RT, Transitions)
 
     def test_initial(self):
         onMessage('n', 1, [], self.ctx)
-        rts = self.ctx.RTS.prefix('n')
+        rts = self.ctx.RRT.prefix('n')
         tr = self.ctx.Transitions.prefix('n')
         self.assertEqual(rts, rts_exp('n', (MAX,1,0)))
         self.assertEqual(tr, tr_exp('n',((1,MAX),(0,1))))
@@ -25,7 +25,7 @@ class TestMessage(unittest.TestCase):
         onMessage('n', 1, [], self.ctx)
         onMessage('n', 2, [], self.ctx)
         onMessage('n', 3, [], self.ctx)
-        rts = self.ctx.RTS.prefix('n')
+        rts = self.ctx.RRT.prefix('n')
         tr = self.ctx.Transitions.prefix('n')
         self.assertEqual(rts, rts_exp('n',(MAX,3,2,1,0)))
         self.assertEqual(tr, tr_exp('n', ((3,MAX),(2,3),(1,2),(0,1))))
@@ -34,14 +34,14 @@ class TestMessage(unittest.TestCase):
         onMessage('n', 1, [], self.ctx)
         onMessage('n', 3, [], self.ctx)
         onMessage('n', 2, [], self.ctx)
-        rts = self.ctx.RTS.prefix('n')
+        rts = self.ctx.RRT.prefix('n')
         tr = self.ctx.Transitions.prefix('n')
         self.assertEqual(rts, rts_exp('n',(MAX,3,2,1,0)))
         self.assertEqual(tr, tr_exp('n', ((3,MAX),(2,3),(1,2),(0,1))))
 
     def test_concurrent(self):
-        rts = lambda: self.ctx.RTS.prefix('n')
-        rrts = lambda: self.ctx.RRTS.prefix('n')
+        rts = lambda: self.ctx.RRT.prefix('n')
+        rrts = lambda: self.ctx.RT.prefix('n')
         trs = lambda: self.ctx.Transitions.prefix('n')
         onMessage('n', 1, [], self.ctx)
         onMessage('n', 4, [], self.ctx)
@@ -50,22 +50,22 @@ class TestMessage(unittest.TestCase):
         self.assertEqual(rts(), rts_exp('n',(MAX,4,1,0)))
         self.assertEqual(rrts(), rrts_exp('n',(1,4,MAX)))
         self.assertEqual(trs(), tr_exp('n', ((4,MAX),(1,4),(0,1))))
-        # 0:t2 (Write to RTS)
+        # 0:t2 (Write to RRT)
         self.assertEqual(t2.next(), (0,-2))
         self.assertEqual(rts(), rts_exp('n', (MAX,4,2,1,0)))
-        # 0:t3 (Write to RTS)
+        # 0:t3 (Write to RRT)
         self.assertEqual(t3.next(), (0,-3))
         self.assertEqual(rts(), rts_exp('n', (MAX,4,3,2,1,0)))
-        # 1:t2 (Write to RRTS)
+        # 1:t2 (Write to RT)
         self.assertEqual(t2.next(), (1,2))
         self.assertEqual(rrts(), rrts_exp('n',(1,2,4,MAX)))
-        # 1:t3 (Write to RRTS)
+        # 1:t3 (Write to RT)
         self.assertEqual(t3.next(), (1,3))
         self.assertEqual(rrts(), rrts_exp('n',(1,2,3,4,MAX)))
-        # 2 (Scan RTS for precedent)
+        # 2 (Scan RRT for precedent)
         self.assertEqual(t2.next(), (2,1))
         self.assertEqual(t3.next(), (2,2))
-        # 4 (Scan RRTS for subsequent)
+        # 4 (Scan RT for subsequent)
         self.assertEqual(t2.next(), (4,3))
         self.assertEqual(t3.next(), (4,4))
         # 7:t2 (Insert transition - incoming)
@@ -86,7 +86,7 @@ class TestMessage(unittest.TestCase):
         # 10:t3 (Delete Transition)
         self.assertEqual(t3.next(), (10,(-2,-4)))
         self.assertEqual(trs(), tr_exp('n', ((4,MAX),(3,4),(2,3),(1,4),(1,2),(0,1))))
-        # 8 (Scan RTS)
+        # 8 (Scan RRT)
         self.assertEqual(t2.next(), (8,(-3,-1,[-3,-2,-1])))
         self.assertEqual(t3.next(), (8,(-4,-2,[-4,-3,-2])))
         # 9 (Scan Transition)
@@ -95,7 +95,7 @@ class TestMessage(unittest.TestCase):
         # 10:t2 (Delete Transition)
         self.assertEqual(t2.next(), (10,(-1,-4)))
         self.assertEqual(trs(), tr_exp('n', ((4,MAX),(3,4),(2,3),(1,2),(0,1))))
-        # 8 (Scan RTS)
+        # 8 (Scan RRT)
         self.assertEqual(t2.next(), (8,(-3,-1,[-3,-2,-1])))
         # 9 (Scan Transition)
         self.assertEqual(t2.next(), (9,(-2,-1,[(-2,-3),(-1,-2)])))
