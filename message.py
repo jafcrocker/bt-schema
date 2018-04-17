@@ -25,7 +25,7 @@ def onMessageConcurrent(n,t,y, ctx):
     # Find preceding message
     try:
         prev = RRT.scan((n,-t), (n+'\0', 0))[1]
-        yield 2, -prev[0].time
+        yield 2, (-t, -prev[0].time)
     except IndexError:
         # No preceding message.  Insert one at time 0
         s,x = 0, []
@@ -39,7 +39,7 @@ def onMessageConcurrent(n,t,y, ctx):
     # Find subsequent message
     try:
         following = RT.scan((n,t), (n+'\0', 0))[1]
-        yield 4, following[0].time
+        yield 4, (t, following[0].time)
     except IndexError:
         # No subsequent message.  Insert one at time MAX
         u,z = MAXINT, []

@@ -52,24 +52,26 @@ class MyTests(unittest.TestCase):
     passed = open('passed.txt', 'w')
 
     def printAction(self, thread, result):
-        rts,tr = '',''
+        rt,rts,tr = '','',''
         if result[0] == 0:
             rts = ''.join(str(-i) for i in sorted (j.time for j in self.ctx.RRT._table.iterkeys()))
+        if result[0] == 1:
+            rt = ''.join(str(i) for i in sorted (j.time for j in self.ctx.RT._table.iterkeys()))
         if result[0] in (7,10):
             tr = ','.join(str(-i)+str(-j) for i,j in sorted ((k[1],k[2]) for k in self.ctx.Transitions._table.iterkeys()))
-        print '{rts:<8}{tr:<18}'.format(rts=rts, tr=tr),
+	print '{rt:<6}{rts:<6}{tr:<18}'.format(rts=rts, tr=tr, rt=rt),
         print ' ' * (8*thread) , '%d:%s'% (result[0], self.printAction.format[result[0]](result[1]))
     printAction.format = {
         0: lambda x: "RRT<-{}".format(-x),
         1: lambda x: "RT<-{}".format(x),
-        2: lambda x: "u={}".format(x),
+        2: lambda x: "u=RRT[{}..][1]={}".format(*x),
         3: lambda x: "",
-        4: lambda x: "s={}".format(x),
+        4: lambda x: "s=RT[{}..][1]={}".format(*x),
         5: lambda x: "",
         6: lambda x: "",
         7: lambda x: "TR<-{}{}".format(-x[0],-x[1]),
-        8: lambda x: "m={}".format(''.join(str(-i) for i in x[2])),
-        9: lambda x: "t={}".format(','.join(str(-i)+str(-j) for i,j in x[2])),
+        8: lambda x: "m=RT[{}..{}]={}".format(x[0],x[1],''.join(str(i) for i in x[2])),
+        9: lambda x: "t=TR[{}..{}]={}".format(-x[0],-x[1],','.join(str(-i)+str(-j) for i,j in x[2])),
         10:lambda x: "TR<-({}{})".format(-x[0],-x[1])
         }
 
