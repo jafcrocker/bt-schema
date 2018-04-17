@@ -3,7 +3,7 @@ from message import onMessage, onMessageConcurrent, Context, MAXINT as MAX
 from table import Table, RRTKey, TransitionsKey, RTKey
 
 rts_exp = lambda x,y: [(RRTKey(x,-i),[]) for i in y]
-rrts_exp = lambda x,y: [(RTKey(x,i),0) for i in y]
+rrts_exp = lambda x,y: [(RTKey(x,i),[]) for i in y]
 tr_exp = lambda x,y: [(TransitionsKey(x,-i,-j),None) for i,j in y]
 class NotTerminatedException (AssertionError):
     pass
@@ -125,9 +125,9 @@ class MyTests(unittest.TestCase):
 
         msgs = [MAX] + range(threadCnt+1,-1,-1)
         self.assertEqual(self.ctx.RRT.prefix('n'), 
-                rts_exp('n', msgs))
+                rts_exp('n', msgs[1:]))
         self.assertEqual(self.ctx.RT.prefix('n'), 
-                rrts_exp('n', msgs[-2::-1]))
+                rrts_exp('n', msgs[-1::-1]))
         trs =[(i,j) for i,j in zip(msgs[1:],msgs[:-1])] 
         self.assertEqual(self.ctx.Transitions.prefix('n'), 
                 tr_exp('n', trs))

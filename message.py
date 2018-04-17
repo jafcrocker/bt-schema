@@ -13,13 +13,14 @@ def onMessage(n,t,x,ctx):
     for _ in f:
         pass
 
-def onMessageConcurrent(n,t,x, ctx):
+def onMessageConcurrent(n,t,y, ctx):
     RRT, RT, Transitions = ctx.RRT, ctx.RT, ctx.Transitions
-    RRT.insert((n,-t), x)
-    yield 0, -t
 
-    RT.insert((n,t), 0)
+    RT.insert((n,t), y)
     yield 1, t
+
+    RRT.insert((n,-t), y)
+    yield 0, -t
 
     # Find preceding message
     try:
@@ -27,11 +28,13 @@ def onMessageConcurrent(n,t,x, ctx):
         yield 2, -prev[0].time
     except IndexError:
         # No preceding message.  Insert one at time 0
-        u,y = 0, []
-        RRT.insert((n,u), y)
+        s,x = 0, []
+        RRT.insert((n,-s), x)
         yield 3, None
+        RT.insert((n,s), x)
+        yield 5, None
     else:
-        u,y = prev[0].time, prev[1]
+        s,x = -prev[0].time, prev[1]
 
     # Find subsequent message
     try:
@@ -39,14 +42,11 @@ def onMessageConcurrent(n,t,x, ctx):
         yield 4, following[0].time
     except IndexError:
         # No subsequent message.  Insert one at time MAX
-        s = MAXINT
-        RRT.insert((n,-s), [])
-        yield 5, None
-        RT.insert((n,s), 0)
+        u,z = MAXINT, []
+        RT.insert((n,u), z)
         yield 6, None
     else:
-        s = following[0].time
-    s = -s
+        u,z = following[0].time, following[1] 
 
     # Set up preconditions to loop
     #  Precondition: No transitions are known to us
@@ -55,10 +55,10 @@ def onMessageConcurrent(n,t,x, ctx):
     #   we haven't seen it in the Transition table.  This optimizes for the
     #   common case in which messages per node are processed one-at-a-time
     #   at the expense of messages processed simulataneously.
-    to_delete = [(n,u,s)]
+    to_delete = [(n,-s,-u)]
     while True:
 	# Determine transitions to insert
-        expected = ((n,u,-t), (n,-t,s))
+        expected = ((n,-s,-t), (n,-t,-u))
         to_insert = [i for i in expected if i not in transitions]
         if not to_insert and not to_delete:
             break
@@ -74,17 +74,17 @@ def onMessageConcurrent(n,t,x, ctx):
             yield 10, i[1:]
 
         # Get relevant messages and transitions
-        messages = RRT.scan((n,s),(n,u), True)
+        messages = RT.scan((n,s),(n,u), True)
         yield 8, (s,u,[i[0].time for i in messages])
-        transitions = [i[0] for i in Transitions.scan((n,-t,-MAXINT),(n,u,MAXINT))]
-        yield 9, (-t,u, [i[1:] for i in transitions])
+        transitions = [i[0] for i in Transitions.scan((n,-t,-MAXINT),(n,-s,MAXINT))]
+        yield 9, (-t,-s, [i[1:] for i in transitions])
 
         # Get all of the times that we know about, either via messages or
         #  transitions.
         times = sorted(set(i for i in chain (
             (i[0].time for i in messages),
-            (i.precedent for i in transitions),
-            (i.subsequent for i in transitions))))
+            (-i.precedent for i in transitions),
+            (-i.subsequent for i in transitions))))
 
         # Delete transitions
         #  We need to ensure that there are no transitions with the same precedent.
@@ -96,14 +96,14 @@ def onMessageConcurrent(n,t,x, ctx):
         #TODO: delete all edges except those to the subsequent *time*.  This should
         # let us converge more quickly
         to_delete = []
-        for precedent in (-t,u):
+        for precedent in (-t,-s):
             q = [i for i in transitions if i.precedent == precedent]
             for i in q[:-1]:
                 to_delete.append(i)
 
         # Find adjacent messages for generating expected transitions.
         for idx, val in enumerate(times):
-            if val == -t:
+            if val == t:
                 u = times[idx+1]
                 s = times[idx-1]
                 break

@@ -3,3 +3,6 @@ test:
 
 exhaustive:
 	bash runtests.sh
+
+clean:
+	rm -f *.txt out*
