@@ -55,10 +55,10 @@ def onMessageConcurrent(n,t,y, ctx):
     #   we haven't seen it in the Transition table.  This optimizes for the
     #   common case in which messages per node are processed one-at-a-time
     #   at the expense of messages processed simulataneously.
-    to_delete = [(n,-s,-u)]
+    to_delete = [(n,s,u)]
     while True:
 	# Determine transitions to insert
-        expected = ((n,-s,-t), (n,-t,-u))
+        expected = ((n,s,t), (n,t,u))
         to_insert = [i for i in expected if i not in transitions]
         if not to_insert and not to_delete:
             break
@@ -76,15 +76,15 @@ def onMessageConcurrent(n,t,y, ctx):
         # Get relevant messages and transitions
         messages = RT.scan((n,s),(n,u), True)
         yield 8, (s,u,[i[0].time for i in messages])
-        transitions = [i[0] for i in Transitions.scan((n,-t,-MAXINT),(n,-s,MAXINT))]
-        yield 9, (-t,-s, [i[1:] for i in transitions])
+        transitions = [i[0] for i in Transitions.scan((n,s,0),(n,t,MAXINT),True)]
+        yield 9, (s,t, [i[1:] for i in transitions])
 
         # Get all of the times that we know about, either via messages or
         #  transitions.
         times = sorted(set(i for i in chain (
             (i[0].time for i in messages),
-            (-i.precedent for i in transitions),
-            (-i.subsequent for i in transitions))))
+            (i.precedent for i in transitions),
+            (i.subsequent for i in transitions))))
 
         # Delete transitions
         #  We need to ensure that there are no transitions with the same precedent.
@@ -96,16 +96,12 @@ def onMessageConcurrent(n,t,y, ctx):
         #TODO: delete all edges except those to the subsequent *time*.  This should
         # let us converge more quickly
         to_delete = []
-        for precedent in (-t,-s):
+        for precedent in (t,s):
             q = [i for i in transitions if i.precedent == precedent]
-            for i in q[:-1]:
+            for i in q[1:]:
                 to_delete.append(i)
 
         # Find adjacent messages for generating expected transitions.
-        for idx, val in enumerate(times):
-            if val == t:
-                u = times[idx+1]
-                s = times[idx-1]
-                break
-        else:
-            assert False
+        t_index = times.index(t)
+        s = times[t_index - 1]
+        u = times[t_index + 1]

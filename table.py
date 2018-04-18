@@ -10,7 +10,7 @@ class RTKey (namedtuple('RTKey', ('node', 'time'))):
 
 class TransitionsKey(namedtuple('TransitionsKey', ('node', 'precedent', 'subsequent'))):
     def __repr__(self):
-        return "{}#{}#{}".format(self[0], -self[1], -self[2])
+        return "{}#{}#{}".format(self[0], self[1], self[2])
 
 
 class Table(object):
