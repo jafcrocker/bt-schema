@@ -24,7 +24,7 @@ def onMessageConcurrent(n,t,y, ctx):
 
     # Find preceding message
     try:
-        prev = RRT.scan((n,-t), (n+'\0', 0))[1]
+        prev = RRT.scan((n,-t), (n, 0), True)[1]
         yield 2, (-t, -prev[0].time)
     except IndexError:
         # No preceding message.  Insert one at time 0
@@ -38,7 +38,7 @@ def onMessageConcurrent(n,t,y, ctx):
 
     # Find subsequent message
     try:
-        following = RT.scan((n,t), (n+'\0', 0))[1]
+        following = RT.scan((n,t), (n, MAXINT), True)[1]
         yield 4, (t, following[0].time)
     except IndexError:
         # No subsequent message.  Insert one at time MAX
@@ -95,11 +95,8 @@ def onMessageConcurrent(n,t,y, ctx):
         #  are no duplicates from those
         #TODO: delete all edges except those to the subsequent *time*.  This should
         # let us converge more quickly
-        to_delete = []
-        for precedent in (t,s):
-            q = [i for i in transitions if i.precedent == precedent]
-            for i in q[1:]:
-                to_delete.append(i)
+        to_delete = sorted(set(i for i in transitions if i.precedent in (s,t)) -
+                           set((n,i,j) for i,j in zip(times[:-1],times[1:])))
 
         # Find adjacent messages for generating expected transitions.
         t_index = times.index(t)
